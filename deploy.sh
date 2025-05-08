@@ -14,13 +14,21 @@ fi
 
 echo "Enabled services: $SERVICES"
 
-# Step 2: Update repositories for services
-echo "Updating repositories for services..."
-python ./deployment_scripts/update_repositories_for_services.py $CONFIG_FILE
+# Step 2: Update repositories for non-aps_api services
+echo "Updating repositories for services except aps_api..."
+SERVICES_FOR_UPDATE=""
+for SERVICE in $SERVICES; do
+    if [ "$SERVICE" != "aps_api" ]; then
+        SERVICES_FOR_UPDATE="$SERVICES_FOR_UPDATE $SERVICE"
+    fi
+done
 
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to update repositories"
-    exit 1
+if [ ! -z "$SERVICES_FOR_UPDATE" ]; then
+    python ./deployment_scripts/update_repositories_for_services.py $CONFIG_FILE
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to update repositories"
+        exit 1
+    fi
 fi
 
 # Step 3: Build docker images for services
@@ -44,17 +52,71 @@ for SERVICE in $SERVICES; do
         exit 1
     fi
 
-    echo "Building image for $SERVICE with environment $ENV..."
-    docker build -t "$SERVICE:$ENV" -f "$DOCKERFILE" --build-arg ENV_FILE="$ENV_FILE" ./services/$SERVICE
+    # Read TAG from the env file
+    TAG=$(grep "TAG=" "$ENV_FILE" | cut -d'=' -f2)
+    if [ -z "$TAG" ]; then
+        TAG="latest"  # Default tag
+    fi
+
+    # Create image tag in the format env-tag
+    IMAGE_TAG="$ENV-$TAG"
+
+    echo "Building image for $SERVICE with tag $IMAGE_TAG..."
+
+    # Handle service-specific build requirements
+    case "$SERVICE" in
+        "aps_api")
+            # Read Git-related variables from the env file for aps_api
+            GITHUB_TOKEN=$(grep "GIT_TOKEN=" "$ENV_FILE" | cut -d'=' -f2)
+            ENGINE_REPOSITORY_URL=$(grep "ENGINE_REPOSITORY_URL=" "$ENV_FILE" | cut -d'=' -f2)
+            BRANCH_NAME=$(grep "BRANCH=" "$ENV_FILE" | cut -d'=' -f2)
+            COMMIT_HASH=$TAG  # Use TAG as COMMIT_HASH if needed
+
+            if [ -z "$GITHUB_TOKEN" ] || [ -z "ENGINE_REPOSITORY_URL" ] || [ -z "$BRANCH_NAME" ]; then
+                echo "Warning: Missing required Git variables in $ENV_FILE for aps_api"
+                echo "Ensure REPOSITORY_URL, BRANCH, and GIT_TOKEN are set"
+            fi
+
+            # Build with Git-related build args for aps_api
+            docker build -t "$SERVICE:$IMAGE_TAG" -f "$DOCKERFILE" \
+                --build-arg GITHUB_TOKEN="$GITHUB_TOKEN" \
+                --build-arg ENGINE_REPOSITORY_URL="$ENGINE_REPOSITORY_URL" \
+                --build-arg BRANCH_NAME="$BRANCH_NAME" \
+                --build-arg COMMIT_HASH="$COMMIT_HASH" \
+                --build-arg ENV_FILE="$ENV_FILE" \
+                ./services/$SERVICE
+            ;;
+
+        "rag")
+            # For rag service, use the repositories directory as the build context
+            docker build -t "$SERVICE:$IMAGE_TAG" -f "$DOCKERFILE" \
+                --build-arg ENV_FILE="$ENV_FILE" \
+                ./services/$SERVICE
+            ;;
+
+        *)
+            # Generic build for other services
+            docker build -t "$SERVICE:$IMAGE_TAG" -f "$DOCKERFILE" \
+                --build-arg ENV_FILE="$ENV_FILE" \
+                ./services/$SERVICE
+            ;;
+    esac
 
     if [ $? -ne 0 ]; then
         echo "Error: Failed to build docker image for $SERVICE"
         exit 1
     fi
+
+    # Also tag as just the env for backwards compatibility
+    docker tag "$SERVICE:$IMAGE_TAG" "$SERVICE:$ENV"
+
+    SERVICE_UPPER=$(echo "$SERVICE" | tr '[:lower:]' '[:upper:]')
+    export "${SERVICE_UPPER}_ENV"="$ENV"
+    export "${SERVICE_UPPER}_IMAGE_TAG"="$IMAGE_TAG"
 done
 
 # Step 4: Run docker-compose with enabled services
 echo "Starting services with docker-compose..."
-docker-compose up -d $SERVICES
+docker compose up -d $SERVICES
 
 echo "Deployment completed successfully!"

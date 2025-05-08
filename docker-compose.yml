@@ -1,0 +1,31 @@
+services:
+  aps_api:
+    image: aps_api:${APS_API_IMAGE_TAG:-${APS_API_ENV:-develop}}
+    container_name: ${APS_API_CONTAINER_NAME:-aps_api}
+    restart: unless-stopped
+    ports:
+      - "${APS_API_EXTERNAL_PORT:-8000}:${APS_API_INTERNAL_PORT:-8000}"
+    volumes:
+      - ${APS_API_HOST_LOG_PATH:-./logs/aps_api}:${APS_API_CONTAINER_LOG_PATH:-/app/logs}
+    env_file:
+      - ./env/${APS_API_ENV:-develop}/aps_api.env
+    networks:
+      - engine_network
+
+  rag:
+    image: rag:${RAG_IMAGE_TAG:-${RAG_ENV:-develop}}
+    container_name: ${RAG_CONTAINER_NAME:-rag}
+    restart: unless-stopped
+    ports:
+      - "${RAG_EXTERNAL_PORT:-8001}:${RAG_INTERNAL_PORT:-8001}"
+    volumes:
+      - ${RAG_HOST_LOG_PATH:-./logs/rag}:${RAG_CONTAINER_LOG_PATH:-/app/logs}
+      - ${RAG_HOST_CONFIG_PATH:-./config/rag}:${RAG_CONTAINER_CONFIG_PATH:-/app/config}
+    env_file:
+      - ./env/${RAG_ENV:-develop}/rag.env
+    networks:
+      - engine_network
+
+networks:
+  engine_network:
+    driver: bridge
