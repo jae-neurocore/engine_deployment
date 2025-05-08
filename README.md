@@ -25,5 +25,6 @@
     │   └── rag/
     │       └── [소스코드]
     ├── deploy_config.yml
+    ├── deploy.sh
     └── docker-compose.yml
 ```
