@@ -27,9 +27,10 @@
 4. run deploy.sh
 
 ### How deploy.sh works
-1. read deployment_config.yml file with deployment_scripts/parse_deployment_config.py
-2. build docker image for the services in deployment_config.yml with matching .env
-3. run docker compose for the services in deployment_config.yml with matching .env
+1. read deployment_config.yml file with deployment_scripts/parse_deployment_config.py and get services and env file paths
+2. pull repository to services folder for each service and checkout to the branch and the tag with matching .env
+3. build docker image for the services with matching .env
+4. run docker compose for the services with matching .env
 
 ## Project Structure
 ```
