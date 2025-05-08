@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-import sys
-import os
 import json
-import subprocess
+import os
 import shutil
-import re
+import subprocess
+import sys
 
 
 def read_env_file(env_file_path):
@@ -94,12 +93,17 @@ def update_repository(service_name, env_file_path):
         print(f"Error: REPOSITORY_URL not defined in {env_file_path}", file=sys.stderr)
         return False
 
-    # If token and username are provided but not in the URL, add them
-    if git_token and git_username and 'https://' in repository_url and '@' not in repository_url:
-        # Format: https://username:token@host/path
-        url_parts = repository_url.split('https://')
-        if len(url_parts) == 2:
-            repository_url = f"https://{git_username}:{git_token}@{url_parts[1]}"
+    # Add this code before the line with "Clone the repository" comment
+    # Handle GitHub shorthand format (org/repo)
+    if '/' in repository_url and not (repository_url.startswith('http') or repository_url.startswith('git@')):
+        # This is a GitHub shorthand format like 'neurocore-ai/aps_api'
+        if git_token:
+            # If token is provided, use it for authentication
+            repository_url = f"https://oauth2:{git_token}@github.com/{repository_url}.git"
+        else:
+            # Without token, use the public HTTPS URL
+            repository_url = f"https://github.com/{repository_url}.git"
+        print(f"Converted shorthand repo format to: {repository_url.replace(git_token, '***')}", file=sys.stderr)
 
     # Ensure services directory exists
     services_dir = os.path.join(os.getcwd(), 'services')
