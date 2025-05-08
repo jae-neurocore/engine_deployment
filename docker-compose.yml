@@ -20,7 +20,6 @@ services:
       - "${RAG_EXTERNAL_PORT:-8001}:${RAG_INTERNAL_PORT:-8001}"
     volumes:
       - ${RAG_HOST_LOG_PATH:-./logs/rag}:${RAG_CONTAINER_LOG_PATH:-/app/logs}
-      - ${RAG_HOST_CONFIG_PATH:-./config/rag}:${RAG_CONTAINER_CONFIG_PATH:-/app/config}
     env_file:
       - ./env/${RAG_ENV:-develop}/rag.env
     networks:
