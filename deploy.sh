@@ -14,21 +14,12 @@ fi
 
 echo "Enabled services: $SERVICES"
 
-# Step 2: Update repositories for non-aps_api services
-echo "Updating repositories for services except aps_api..."
-SERVICES_FOR_UPDATE=""
-for SERVICE in $SERVICES; do
-    if [ "$SERVICE" != "aps_api" ]; then
-        SERVICES_FOR_UPDATE="$SERVICES_FOR_UPDATE $SERVICE"
-    fi
-done
-
-if [ ! -z "$SERVICES_FOR_UPDATE" ]; then
-    python ./deployment_scripts/update_repositories_for_services.py $CONFIG_FILE
-    if [ $? -ne 0 ]; then
-        echo "Error: Failed to update repositories"
-        exit 1
-    fi
+# Step 2: Update repositories for all services
+echo "Updating repositories for all services..."
+python ./deployment_scripts/update_repositories_for_services.py $CONFIG_FILE
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to update repositories"
+    exit 1
 fi
 
 # Step 3: Build docker images for services
