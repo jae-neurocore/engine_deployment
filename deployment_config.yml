@@ -1,7 +1,13 @@
 aps_api:
   enabled: true
   env: develop
+  ports:
+    internal: 8000
+    external: 50124
 
 rag:
   enabled: true
   env: develop
+  ports:
+    internal: 8000
+    external: 50125

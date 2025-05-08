@@ -19,7 +19,7 @@ COPY . .
 
 RUN mkdir -p logs
 
-EXPOSE 8001
+EXPOSE 8000
 
 # Run the FastAPI application
 CMD ["python", "main.py"]

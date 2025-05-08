@@ -14,6 +14,10 @@ fi
 
 echo "Enabled services: $SERVICES"
 
+# Get port settings from config
+echo "Reading port settings from $CONFIG_FILE..."
+PORT_SETTINGS=$(python ./deployment_scripts/parse_deployment_config.py $CONFIG_FILE port_settings)
+
 # Step 2: Update repositories for all services
 echo "Updating repositories for all services..."
 python ./deployment_scripts/update_repositories_for_services.py $CONFIG_FILE
@@ -104,6 +108,22 @@ for SERVICE in $SERVICES; do
     SERVICE_UPPER=$(echo "$SERVICE" | tr '[:lower:]' '[:upper:]')
     export "${SERVICE_UPPER}_ENV"="$ENV"
     export "${SERVICE_UPPER}_IMAGE_TAG"="$IMAGE_TAG"
+
+    # Extract and set port settings from config if available
+    if [ ! -z "$PORT_SETTINGS" ]; then
+        INTERNAL_PORT=$(echo $PORT_SETTINGS | jq -r ".$SERVICE.internal // empty")
+        EXTERNAL_PORT=$(echo $PORT_SETTINGS | jq -r ".$SERVICE.external // empty")
+
+        if [ ! -z "$INTERNAL_PORT" ]; then
+            export "${SERVICE_UPPER}_INTERNAL_PORT"="$INTERNAL_PORT"
+            echo "Setting ${SERVICE_UPPER}_INTERNAL_PORT=$INTERNAL_PORT"
+        fi
+
+        if [ ! -z "$EXTERNAL_PORT" ]; then
+            export "${SERVICE_UPPER}_EXTERNAL_PORT"="$EXTERNAL_PORT"
+            echo "Setting ${SERVICE_UPPER}_EXTERNAL_PORT=$EXTERNAL_PORT"
+        fi
+    fi
 done
 
 # Step 4: Run docker-compose with enabled services

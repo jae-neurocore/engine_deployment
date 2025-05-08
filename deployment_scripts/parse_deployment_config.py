@@ -12,6 +12,7 @@ def parse_yaml(file_path, output_format="services"):
         output_format (str): Type of output to generate:
             - "services": Space-separated list of enabled services
             - "env_paths": JSON object with service name and env file path
+            - "port_settings": JSON object with service name and port settings
             - "full": All configuration details in JSON format
 
     Returns:
@@ -46,6 +47,23 @@ def parse_yaml(file_path, output_format="services"):
 
                 import json
                 return json.dumps(env_paths)
+
+            elif output_format == "port_settings":
+                # Return service and port settings mapping
+                port_settings = {}
+                for service, config in enabled_services.items():
+                    ports = config.get('ports', {})
+                    internal_port = ports.get('internal', None)
+                    external_port = ports.get('external', None)
+
+                    if internal_port is not None or external_port is not None:
+                        port_settings[service] = {
+                            "internal": internal_port,
+                            "external": external_port
+                        }
+
+                import json
+                return json.dumps(port_settings)
 
             elif output_format == "full":
                 # Return full configuration for enabled services
