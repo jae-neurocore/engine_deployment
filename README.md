@@ -1,49 +1,53 @@
-# Engine Deployment 
+# 엔진 배포 
 
-## How to
-1. set deployment_config.yml
-   - deployment_config.yml example
+## 배포 하는법
+1. ./deployment_scripts/install_jq.sh 실행
+2. deployment_config.yml 파일 설정
+   - deployment_config.yml 예시
        ```yaml
        aps_api:
+         enabled: true # 배포하고자 하는 서비스는 true로 설정
+         env: develop # ./env/develop/.env 를 사용하겠다는 설정
+         ports:
+           internal: 8000 # 컨테이너 내부에서 사용하는 포트 (8000번 고정)
+           external: 50125 # 컨테이너 외부에서 사용하는 포트 (서비스 별 변경 필요)
+        
+       rag:
          enabled: true
          env: develop
          ports:
            internal: 8000
-           external: 8000
-        
-       rag:
-         enabled: true
-         env: master
-         ports:
-           internal: 8001
-           external: 8001
+           external: 50126
       ```
-2. write .env files for configured services and envs
-   - with deployment_config.yml example given 
+3. .env 파일 작성
+   - (1)에 설정된 deployment_config.yml 기준 
      ```
-     write file in ./env/aps_api/develop/.env
-     write file in ./env/rag/master/.env
+     아래 두 경로에 .env 파일 작성
+     ./env/aps_api/develop/.env
+     ./env/rag/develop/.env
      ```
-3. write Dockerfile for configured services
-   - with deployment_config.yml example given 
+4. Dockerfile 작성
+   - (1)에 설정된 deployment_config.yml 기준 
      ```
-     write file in ./docker/aps_api/Dockerfile
-     write file in ./docker/rag/Dockerfile
+     아래 두 경로에 Dockerfile 작성
+     ./docker/aps_api/Dockerfile
+     ./docker/rag/Dockerfile
      ```
-4. run deploy.sh
+5. run deploy.sh
 
-### How deploy.sh works
-1. read deployment_config.yml file with deployment_scripts/parse_deployment_config.py and get services, env file paths, and port settings
-2. pull repository to services folder for each service and checkout to the branch and the tag with matching .env
-3. build docker image for the services with matching .env
-4. set environment variables including port settings from configuration
-5. run docker compose for the services with matching .env
+### deploy.sh 작동 방식
+1. deployment_config.yml 설정 파일 해석
+2. 각 설정에 맞도록 services 하위에 원격 저장소 clone/pull
+3. 서비스 별 도커 이미지 빌드
+4. docker compose up 실행
 
 ## Project Structure
 ```
 .
 └── project/
-├── docker/
+    ├── deployment_scripts/
+    │   └── [scripts]
+    ├── docker/
     │   ├── aps_api/
     │   │   └── Dockerfile
     │   └── rag/
@@ -52,10 +56,7 @@
     │   ├── develop/
     │   │   ├── aps_api.env
     │   │   └── rag.env
-    │   ├── master/
-    │   │   ├── aps_api.env
-    │   │   └── rag.env
-    │   └── prod/
+    │   └── master/
     │       ├── aps_api.env
     │       └── rag.env
     ├── services/
@@ -63,11 +64,9 @@
     │   │   └── [소스코드]
     │   └── rag/
     │       └── [소스코드]
-    ├── deployment_scripts/
-    │   ├── parse_deploy_config.py
-    │   ├── update_repositories_for_services.py
-    │   └── install_dependencies.sh
     ├── deployment_config.yml
+    ├── docker-compose.yml
     ├── deploy.sh
-    └── docker-compose.yml
+    ├── README.md
+    └── requirements.txt
 ```
